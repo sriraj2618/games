@@ -4,18 +4,6 @@ from streamlit_option_menu import option_menu
 
 st.set_page_config(page_title="Game Zone", page_icon="🎮", layout="wide")
 
-st.markdown("""
-<style>
-body{
-background: linear-gradient(135deg,#1e3c72,#2a5298);
-color:white;
-}
-h1,h2{
-text-align:center;
-}
-</style>
-""", unsafe_allow_html=True)
-
 st.title("🎮 Game Zone")
 
 selected = option_menu(
@@ -25,58 +13,76 @@ selected = option_menu(
     orientation="horizontal"
 )
 
-# HOME
+# HOME PAGE
 if selected == "Home":
     st.markdown("""
-    ## Welcome 🎮
+    ## Welcome to Game Zone
 
-    Play classic arcade games directly in your browser.
+    Choose a game from above menu.
 
-    **Available Games**
-    - 🐍 Snake Game
-    - 🐦 Flappy Bird
-
-    Select a game above to start playing!
+    🎮 Available Games  
+    - Snake Game  
+    - Flappy Bird
     """)
 
-# ------------------ SNAKE GAME ------------------
+# ---------------- SNAKE GAME ----------------
 
 elif selected == "Snake Game":
 
-    snake_game = """
+    snake = """
     <html>
     <body style="text-align:center;background:black;color:white">
 
     <h2>Snake Game</h2>
     <h3>Score: <span id="score">0</span></h3>
 
-    <canvas id="game" width="400" height="400" style="background:#111"></canvas>
-    <br><br>
-    <button onclick="location.reload()">Restart</button>
+    <button onclick="startGame()">Start Game</button>
+
+    <canvas id="game" width="400" height="400" style="background:#111;margin-top:20px"></canvas>
 
     <script>
 
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
+    const canvas=document.getElementById("game");
+    const ctx=canvas.getContext("2d");
 
-    let snake=[{x:200,y:200}];
-    let food={x:100,y:100};
-    let dx=20;
-    let dy=0;
-    let score=0;
+    let snake;
+    let food;
+    let dx;
+    let dy;
+    let score;
+    let gameRunning=false;
 
-    document.addEventListener("keydown",changeDir);
+    function startGame(){
 
-    function changeDir(e){
+        snake=[{x:200,y:200}];
+        food={x:100,y:100};
+        dx=20;
+        dy=0;
+        score=0;
+        gameRunning=true;
+
+        document.getElementById("score").innerHTML=score;
+
+    }
+
+    document.addEventListener("keydown",e=>{
+
+    if(!gameRunning) return;
 
     if(e.key=="ArrowUp" && dy==0){dx=0;dy=-20;}
     if(e.key=="ArrowDown" && dy==0){dx=0;dy=20;}
     if(e.key=="ArrowLeft" && dx==0){dx=-20;dy=0;}
     if(e.key=="ArrowRight" && dx==0){dx=20;dy=0;}
 
-    }
+    });
 
     function draw(){
+
+    if(!gameRunning){
+        ctx.fillStyle="#111";
+        ctx.fillRect(0,0,400,400);
+        return;
+    }
 
     ctx.fillStyle="#111";
     ctx.fillRect(0,0,400,400);
@@ -86,32 +92,34 @@ elif selected == "Snake Game":
 
     ctx.fillStyle="lime";
 
-    snake.forEach(p=>{
-        ctx.fillRect(p.x,p.y,20,20);
-    });
+    snake.forEach(p=>ctx.fillRect(p.x,p.y,20,20));
 
     let head={x:snake[0].x+dx,y:snake[0].y+dy};
 
     if(head.x<0 || head.y<0 || head.x>=400 || head.y>=400){
         alert("Game Over! Score: "+score);
-        location.reload();
+        gameRunning=false;
+        return;
     }
 
     for(let i=1;i<snake.length;i++){
         if(head.x==snake[i].x && head.y==snake[i].y){
             alert("Game Over! Score: "+score);
-            location.reload();
+            gameRunning=false;
+            return;
         }
     }
 
     if(head.x==food.x && head.y==food.y){
+
         score++;
+
         document.getElementById("score").innerHTML=score;
 
         food={
             x:Math.floor(Math.random()*20)*20,
             y:Math.floor(Math.random()*20)*20
-        };
+        }
 
     }else{
         snake.pop();
@@ -124,53 +132,68 @@ elif selected == "Snake Game":
     setInterval(draw,120);
 
     </script>
-
     </body>
     </html>
     """
 
-    html(snake_game,height=500)
+    html(snake,height=520)
 
-
-# ------------------ FLAPPY BIRD ------------------
+# ---------------- FLAPPY BIRD ----------------
 
 elif selected == "Flappy Bird":
 
-    bird_game = """
+    bird = """
     <html>
     <body style="text-align:center;background:black;color:white">
 
     <h2>Flappy Bird</h2>
     <h3>Score: <span id="score">0</span></h3>
 
-    <canvas id="game" width="400" height="500" style="background:skyblue"></canvas>
-    <br><br>
-    <button onclick="location.reload()">Restart</button>
+    <button onclick="startGame()">Start Game</button>
+
+    <canvas id="game" width="400" height="500" style="background:skyblue;margin-top:20px"></canvas>
 
     <script>
 
     const canvas=document.getElementById("game");
     const ctx=canvas.getContext("2d");
 
-    let birdY=250;
-    let velocity=0;
+    let birdY;
+    let velocity;
+    let pipes;
+    let score;
     let gravity=0.6;
-    let pipes=[];
-    let score=0;
+    let gameRunning=false;
 
-    document.addEventListener("keydown",()=>velocity=-8);
+    document.addEventListener("keydown",()=>{
+        if(gameRunning) velocity=-8;
+    });
+
+    function startGame(){
+
+        birdY=250;
+        velocity=0;
+        pipes=[];
+        score=0;
+        gameRunning=true;
+
+        document.getElementById("score").innerHTML=score;
+
+    }
 
     function createPipe(){
 
-    let gap=120;
+        if(!gameRunning) return;
 
-    let topHeight=Math.random()*200+50;
+        let gap=120;
 
-    pipes.push({
-        x:400,
-        top:topHeight,
-        bottom:topHeight+gap
-    });
+        let topHeight=Math.random()*200+50;
+
+        pipes.push({
+            x:400,
+            top:topHeight,
+            bottom:topHeight+gap
+        });
 
     }
 
@@ -178,11 +201,16 @@ elif selected == "Flappy Bird":
 
     function draw(){
 
-    velocity+=gravity;
-    birdY+=velocity;
-
     ctx.fillStyle="skyblue";
     ctx.fillRect(0,0,400,500);
+
+    if(!gameRunning){
+        requestAnimationFrame(draw);
+        return;
+    }
+
+    velocity+=gravity;
+    birdY+=velocity;
 
     ctx.fillStyle="yellow";
     ctx.beginPath();
@@ -192,7 +220,6 @@ elif selected == "Flappy Bird":
     for(let i=0;i<pipes.length;i++){
 
         let p=pipes[i];
-
         p.x-=2;
 
         ctx.fillStyle="green";
@@ -204,7 +231,7 @@ elif selected == "Flappy Bird":
 
             if(birdY-15<p.top || birdY+15>p.bottom){
                 alert("Game Over! Score: "+score);
-                location.reload();
+                gameRunning=false;
             }
 
         }
@@ -218,7 +245,7 @@ elif selected == "Flappy Bird":
 
     if(birdY>500){
         alert("Game Over! Score: "+score);
-        location.reload();
+        gameRunning=false;
     }
 
     requestAnimationFrame(draw);
@@ -228,9 +255,8 @@ elif selected == "Flappy Bird":
     draw();
 
     </script>
-
     </body>
     </html>
     """
 
-    html(bird_game,height=600)
+    html(bird,height=600)
