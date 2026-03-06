@@ -1,112 +1,93 @@
 import streamlit as st
-import random
-import time
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Snake Game", page_icon="🐍")
+st.set_page_config(page_title="Game Hub", page_icon="🎮")
 
-st.title("🐍 Snake Game (Python Version)")
+st.title("🎮 Game Hub")
 
-# -------- INITIALIZE SESSION --------
+game = st.selectbox("Choose Game", ["Snake Game"])
 
-if "snake" not in st.session_state:
-    st.session_state.snake = [(5,5)]
-    st.session_state.food = (10,10)
-    st.session_state.direction = "RIGHT"
-    st.session_state.score = 0
-    st.session_state.running = False
+if game == "Snake Game":
 
-# -------- START BUTTON --------
+    st.subheader("Snake Game")
 
-if st.button("Start Game"):
-    st.session_state.snake = [(5,5)]
-    st.session_state.food = (random.randint(0,19), random.randint(0,19))
-    st.session_state.direction = "RIGHT"
-    st.session_state.score = 0
-    st.session_state.running = True
+    game_html = """
+    <!DOCTYPE html>
+    <html>
+    <body style="background:#111;text-align:center;color:white">
 
-# -------- SCORE --------
+    <h2>Snake Game</h2>
+    <p>Score: <span id="score">0</span></p>
+    <canvas id="game" width="400" height="400" style="background:black"></canvas>
 
-st.subheader(f"Score: {st.session_state.score}")
+    <script>
 
-# -------- CONTROLS --------
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
 
-col1,col2,col3,col4 = st.columns(4)
+    let snake = [{x:200,y:200}];
+    let dx = 20;
+    let dy = 0;
+    let food = {x:100,y:100};
+    let score = 0;
 
-if col1.button("⬅"):
-    st.session_state.direction="LEFT"
+    document.addEventListener("keydown",dir);
 
-if col2.button("⬆"):
-    st.session_state.direction="UP"
+    function dir(e){
 
-if col3.button("⬇"):
-    st.session_state.direction="DOWN"
+        if(e.key=="ArrowUp" && dy==0){dx=0;dy=-20;}
+        if(e.key=="ArrowDown" && dy==0){dx=0;dy=20;}
+        if(e.key=="ArrowLeft" && dx==0){dx=-20;dy=0;}
+        if(e.key=="ArrowRight" && dx==0){dx=20;dy=0;}
 
-if col4.button("➡"):
-    st.session_state.direction="RIGHT"
+    }
 
-# -------- GAME LOOP --------
+    function draw(){
 
-grid_size = 20
+    ctx.fillStyle="black";
+    ctx.fillRect(0,0,400,400);
 
-def move_snake():
+    ctx.fillStyle="red";
+    ctx.fillRect(food.x,food.y,20,20);
 
-    head = st.session_state.snake[0]
+    ctx.fillStyle="lime";
 
-    if st.session_state.direction=="RIGHT":
-        new_head = (head[0], head[1]+1)
+    snake.forEach(s=>{
+        ctx.fillRect(s.x,s.y,20,20);
+    });
 
-    elif st.session_state.direction=="LEFT":
-        new_head = (head[0], head[1]-1)
+    let head = {x:snake[0].x+dx,y:snake[0].y+dy};
 
-    elif st.session_state.direction=="UP":
-        new_head = (head[0]-1, head[1])
+    if(head.x==food.x && head.y==food.y){
 
-    elif st.session_state.direction=="DOWN":
-        new_head = (head[0]+1, head[1])
+        score++;
+        document.getElementById("score").innerHTML=score;
 
-    st.session_state.snake.insert(0,new_head)
+        food={
+        x:Math.floor(Math.random()*20)*20,
+        y:Math.floor(Math.random()*20)*20
+        }
 
-    if new_head == st.session_state.food:
+    }else{
+        snake.pop();
+    }
 
-        st.session_state.score +=1
+    snake.unshift(head);
 
-        st.session_state.food = (
-            random.randint(0,grid_size-1),
-            random.randint(0,grid_size-1)
-        )
+    if(head.x<0||head.y<0||head.x>=400||head.y>=400){
+        alert("Game Over! Score:"+score);
+        location.reload();
+    }
 
-    else:
-        st.session_state.snake.pop()
+    setTimeout(draw,120);
 
-    # collision
+    }
 
-    if (
-        new_head[0] <0 or new_head[0]>=grid_size
-        or new_head[1]<0 or new_head[1]>=grid_size
-        or new_head in st.session_state.snake[1:]
-    ):
-        st.session_state.running=False
-        st.error("Game Over!")
+    draw();
 
-# -------- GAME DISPLAY --------
+    </script>
+    </body>
+    </html>
+    """
 
-grid = [["⬜" for _ in range(grid_size)] for _ in range(grid_size)]
-
-for s in st.session_state.snake:
-    grid[s[0]][s[1]]="🟩"
-
-food = st.session_state.food
-grid[food[0]][food[1]]="🍎"
-
-for row in grid:
-    st.write("".join(row))
-
-# -------- RUN GAME --------
-
-if st.session_state.running:
-
-    move_snake()
-
-    time.sleep(0.3)
-
-    st.rerun()
+    components.html(game_html,height=500)
