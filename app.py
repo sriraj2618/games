@@ -1,262 +1,112 @@
 import streamlit as st
-from streamlit.components.v1 import html
-from streamlit_option_menu import option_menu
+import random
+import time
 
-st.set_page_config(page_title="Game Zone", page_icon="🎮", layout="wide")
+st.set_page_config(page_title="Snake Game", page_icon="🐍")
 
-st.title("🎮 Game Zone")
+st.title("🐍 Snake Game (Python Version)")
 
-selected = option_menu(
-    None,
-    ["Home","Snake Game","Flappy Bird"],
-    icons=["house","controller","controller"],
-    orientation="horizontal"
-)
+# -------- INITIALIZE SESSION --------
 
-# HOME PAGE
-if selected == "Home":
-    st.markdown("""
-    ## Welcome to Game Zone
+if "snake" not in st.session_state:
+    st.session_state.snake = [(5,5)]
+    st.session_state.food = (10,10)
+    st.session_state.direction = "RIGHT"
+    st.session_state.score = 0
+    st.session_state.running = False
 
-    Choose a game from above menu.
+# -------- START BUTTON --------
 
-    🎮 Available Games  
-    - Snake Game  
-    - Flappy Bird
-    """)
+if st.button("Start Game"):
+    st.session_state.snake = [(5,5)]
+    st.session_state.food = (random.randint(0,19), random.randint(0,19))
+    st.session_state.direction = "RIGHT"
+    st.session_state.score = 0
+    st.session_state.running = True
 
-# ---------------- SNAKE GAME ----------------
+# -------- SCORE --------
 
-elif selected == "Snake Game":
+st.subheader(f"Score: {st.session_state.score}")
 
-    snake = """
-    <html>
-    <body style="text-align:center;background:black;color:white">
+# -------- CONTROLS --------
 
-    <h2>Snake Game</h2>
-    <h3>Score: <span id="score">0</span></h3>
+col1,col2,col3,col4 = st.columns(4)
 
-    <button onclick="startGame()">Start Game</button>
+if col1.button("⬅"):
+    st.session_state.direction="LEFT"
 
-    <canvas id="game" width="400" height="400" style="background:#111;margin-top:20px"></canvas>
+if col2.button("⬆"):
+    st.session_state.direction="UP"
 
-    <script>
+if col3.button("⬇"):
+    st.session_state.direction="DOWN"
 
-    const canvas=document.getElementById("game");
-    const ctx=canvas.getContext("2d");
+if col4.button("➡"):
+    st.session_state.direction="RIGHT"
 
-    let snake;
-    let food;
-    let dx;
-    let dy;
-    let score;
-    let gameRunning=false;
+# -------- GAME LOOP --------
 
-    function startGame(){
+grid_size = 20
 
-        snake=[{x:200,y:200}];
-        food={x:100,y:100};
-        dx=20;
-        dy=0;
-        score=0;
-        gameRunning=true;
+def move_snake():
 
-        document.getElementById("score").innerHTML=score;
+    head = st.session_state.snake[0]
 
-    }
+    if st.session_state.direction=="RIGHT":
+        new_head = (head[0], head[1]+1)
 
-    document.addEventListener("keydown",e=>{
+    elif st.session_state.direction=="LEFT":
+        new_head = (head[0], head[1]-1)
 
-    if(!gameRunning) return;
+    elif st.session_state.direction=="UP":
+        new_head = (head[0]-1, head[1])
 
-    if(e.key=="ArrowUp" && dy==0){dx=0;dy=-20;}
-    if(e.key=="ArrowDown" && dy==0){dx=0;dy=20;}
-    if(e.key=="ArrowLeft" && dx==0){dx=-20;dy=0;}
-    if(e.key=="ArrowRight" && dx==0){dx=20;dy=0;}
+    elif st.session_state.direction=="DOWN":
+        new_head = (head[0]+1, head[1])
 
-    });
+    st.session_state.snake.insert(0,new_head)
 
-    function draw(){
+    if new_head == st.session_state.food:
 
-    if(!gameRunning){
-        ctx.fillStyle="#111";
-        ctx.fillRect(0,0,400,400);
-        return;
-    }
+        st.session_state.score +=1
 
-    ctx.fillStyle="#111";
-    ctx.fillRect(0,0,400,400);
+        st.session_state.food = (
+            random.randint(0,grid_size-1),
+            random.randint(0,grid_size-1)
+        )
 
-    ctx.fillStyle="red";
-    ctx.fillRect(food.x,food.y,20,20);
+    else:
+        st.session_state.snake.pop()
 
-    ctx.fillStyle="lime";
+    # collision
 
-    snake.forEach(p=>ctx.fillRect(p.x,p.y,20,20));
+    if (
+        new_head[0] <0 or new_head[0]>=grid_size
+        or new_head[1]<0 or new_head[1]>=grid_size
+        or new_head in st.session_state.snake[1:]
+    ):
+        st.session_state.running=False
+        st.error("Game Over!")
 
-    let head={x:snake[0].x+dx,y:snake[0].y+dy};
+# -------- GAME DISPLAY --------
 
-    if(head.x<0 || head.y<0 || head.x>=400 || head.y>=400){
-        alert("Game Over! Score: "+score);
-        gameRunning=false;
-        return;
-    }
+grid = [["⬜" for _ in range(grid_size)] for _ in range(grid_size)]
 
-    for(let i=1;i<snake.length;i++){
-        if(head.x==snake[i].x && head.y==snake[i].y){
-            alert("Game Over! Score: "+score);
-            gameRunning=false;
-            return;
-        }
-    }
+for s in st.session_state.snake:
+    grid[s[0]][s[1]]="🟩"
 
-    if(head.x==food.x && head.y==food.y){
+food = st.session_state.food
+grid[food[0]][food[1]]="🍎"
 
-        score++;
+for row in grid:
+    st.write("".join(row))
 
-        document.getElementById("score").innerHTML=score;
+# -------- RUN GAME --------
 
-        food={
-            x:Math.floor(Math.random()*20)*20,
-            y:Math.floor(Math.random()*20)*20
-        }
+if st.session_state.running:
 
-    }else{
-        snake.pop();
-    }
+    move_snake()
 
-    snake.unshift(head);
+    time.sleep(0.3)
 
-    }
-
-    setInterval(draw,120);
-
-    </script>
-    </body>
-    </html>
-    """
-
-    html(snake,height=520)
-
-# ---------------- FLAPPY BIRD ----------------
-
-elif selected == "Flappy Bird":
-
-    bird = """
-    <html>
-    <body style="text-align:center;background:black;color:white">
-
-    <h2>Flappy Bird</h2>
-    <h3>Score: <span id="score">0</span></h3>
-
-    <button onclick="startGame()">Start Game</button>
-
-    <canvas id="game" width="400" height="500" style="background:skyblue;margin-top:20px"></canvas>
-
-    <script>
-
-    const canvas=document.getElementById("game");
-    const ctx=canvas.getContext("2d");
-
-    let birdY;
-    let velocity;
-    let pipes;
-    let score;
-    let gravity=0.6;
-    let gameRunning=false;
-
-    document.addEventListener("keydown",()=>{
-        if(gameRunning) velocity=-8;
-    });
-
-    function startGame(){
-
-        birdY=250;
-        velocity=0;
-        pipes=[];
-        score=0;
-        gameRunning=true;
-
-        document.getElementById("score").innerHTML=score;
-
-    }
-
-    function createPipe(){
-
-        if(!gameRunning) return;
-
-        let gap=120;
-
-        let topHeight=Math.random()*200+50;
-
-        pipes.push({
-            x:400,
-            top:topHeight,
-            bottom:topHeight+gap
-        });
-
-    }
-
-    setInterval(createPipe,2000);
-
-    function draw(){
-
-    ctx.fillStyle="skyblue";
-    ctx.fillRect(0,0,400,500);
-
-    if(!gameRunning){
-        requestAnimationFrame(draw);
-        return;
-    }
-
-    velocity+=gravity;
-    birdY+=velocity;
-
-    ctx.fillStyle="yellow";
-    ctx.beginPath();
-    ctx.arc(100,birdY,15,0,Math.PI*2);
-    ctx.fill();
-
-    for(let i=0;i<pipes.length;i++){
-
-        let p=pipes[i];
-        p.x-=2;
-
-        ctx.fillStyle="green";
-
-        ctx.fillRect(p.x,0,40,p.top);
-        ctx.fillRect(p.x,p.bottom,40,500);
-
-        if(100+15>p.x && 100-15<p.x+40){
-
-            if(birdY-15<p.top || birdY+15>p.bottom){
-                alert("Game Over! Score: "+score);
-                gameRunning=false;
-            }
-
-        }
-
-        if(p.x==100){
-            score++;
-            document.getElementById("score").innerHTML=score;
-        }
-
-    }
-
-    if(birdY>500){
-        alert("Game Over! Score: "+score);
-        gameRunning=false;
-    }
-
-    requestAnimationFrame(draw);
-
-    }
-
-    draw();
-
-    </script>
-    </body>
-    </html>
-    """
-
-    html(bird,height=600)
+    st.rerun()
